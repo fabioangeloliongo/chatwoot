@@ -1,5 +1,5 @@
-# Use Ruby 3.1 with Node.js
-FROM ruby:3.1-bullseye
+# Use Ruby 3.4 with Node.js
+FROM ruby:3.4-bullseye
 
 # Install system dependencies
 RUN apt-get update -qq && \
