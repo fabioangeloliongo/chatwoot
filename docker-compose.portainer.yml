@@ -1,5 +1,6 @@
 version: '3.8'
 
+# Não usar arquivo .env - configurar variáveis no Portainer
 services:
   chatwoot-web:
     build: .
