@@ -12,9 +12,12 @@ module ChatwootApp
   end
 
   def self.enterprise?
-    return if ENV.fetch('DISABLE_ENTERPRISE', false)
+    # return if ENV.fetch('DISABLE_ENTERPRISE', false)
 
-    @enterprise ||= root.join('enterprise').exist?
+    # Force Enterprise features to be enabled
+    return true
+
+    # @enterprise ||= root.join('enterprise').exist?
   end
 
   def self.chatwoot_cloud?
