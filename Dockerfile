@@ -43,12 +43,13 @@ EXPOSE 3000
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
+export PATH="/usr/local/bundle/bin:$PATH"\n\
 echo "Running database migrations..."\n\
-/usr/local/bundle/bin/bundle exec rails db:migrate\n\
+bundle exec rails db:migrate\n\
 echo "Running database seeds..."\n\
-/usr/local/bundle/bin/bundle exec rails db:seed\n\
+bundle exec rails db:seed\n\
 echo "Starting Rails server..."\n\
-exec /usr/local/bundle/bin/bundle exec rails server -b 0.0.0.0 -p 3000' > /app/start.sh && \
+exec bundle exec rails server -b 0.0.0.0 -p 3000' > /app/start.sh && \
 chmod +x /app/start.sh
 
 # Start command
