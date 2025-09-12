@@ -40,17 +40,5 @@ RUN RAILS_ENV=production SECRET_KEY_BASE=dummy DATABASE_URL=postgresql://dummy:d
 # Expose port
 EXPOSE 3000
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-export PATH="/usr/local/bundle/bin:$PATH"\n\
-echo "Running database migrations..."\n\
-bundle exec rails db:migrate\n\
-echo "Running database seeds..."\n\
-bundle exec rails db:seed\n\
-echo "Starting Rails server..."\n\
-exec bundle exec rails server -b 0.0.0.0 -p 3000' > /app/start.sh && \
-chmod +x /app/start.sh
-
-# Start command
-CMD ["/app/start.sh"]
+# Start command - run migrations and start server
+CMD ["sh", "-c", "bundle exec rails db:migrate && bundle exec rails db:seed && bundle exec rails server -b 0.0.0.0 -p 3000"]
