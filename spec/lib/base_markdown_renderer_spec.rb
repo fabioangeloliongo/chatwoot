@@ -4,7 +4,7 @@ describe BaseMarkdownRenderer do
   let(:renderer) { described_class.new }
 
   def render_markdown(markdown)
-    doc = CommonMarker.render_doc(markdown, :DEFAULT)
+    doc = Commonmarker.render_doc(markdown, :DEFAULT)
     renderer.render(doc)
   end
 

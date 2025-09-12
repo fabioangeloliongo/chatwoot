@@ -7,7 +7,7 @@ module MessageFormatHelper
     # This handles all markdown formatting (links, bold, italic, etc.) not just mentions
     # Converts: [@👍 customer support](mention://team/1/%F0%9F%91%8D%20customer%20support)
     # To: @👍 customer support
-    CommonMarker.render_doc(message_content).to_plaintext.strip
+    Commonmarker.render_doc(message_content).to_plaintext.strip
   end
 
   def render_message_content(message_content)
