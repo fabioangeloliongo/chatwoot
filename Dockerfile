@@ -6,13 +6,15 @@ RUN apt-get update -qq && \
     apt-get install -y \
     build-essential \
     libpq-dev \
-    nodejs \
-    npm \
-    yarn \
+    curl \
     imagemagick \
     libvips42 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 18.x
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
 # Set working directory
 WORKDIR /app
