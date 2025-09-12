@@ -21,7 +21,8 @@ WORKDIR /app
 
 # Copy Gemfile and install Ruby dependencies
 COPY Gemfile Gemfile.lock ./
-RUN bundle install
+RUN bundle config set --global git.allow_protocol https && \
+    bundle install --jobs 4 --retry 3
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -33,8 +34,8 @@ RUN pnpm install --frozen-lockfile
 # Copy application code
 COPY . .
 
-# Precompile assets
-RUN RAILS_ENV=production SECRET_KEY_BASE=dummy VITE_RUBY_SKIP_COMPATIBILITY_CHECK=1 bundle exec rails assets:precompile
+# Precompile assets with dummy database URL
+RUN RAILS_ENV=production SECRET_KEY_BASE=dummy DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy VITE_RUBY_SKIP_COMPATIBILITY_CHECK=1 bundle exec rails assets:precompile
 
 # Expose port
 EXPOSE 3000
