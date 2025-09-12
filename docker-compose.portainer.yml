@@ -3,9 +3,8 @@ version: '3.8'
 # Não usar arquivo .env - configurar variáveis no Portainer
 services:
   chatwoot-web:
+    image: chatwoot-web-custom
     build: .
-    container_name: chatwoot-web-custom
-    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
@@ -74,9 +73,8 @@ services:
       - rede
 
   chatwoot-sidekiq:
+    image: chatwoot-sidekiq-custom
     build: .
-    container_name: chatwoot-sidekiq-custom
-    restart: unless-stopped
     environment:
       # Database Configuration
       POSTGRES_HOST: ${POSTGRES_HOST}
