@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ['nodejs_18', 'yarn', 'libvips', 'pkg-config']
+nixPkgs = ['nodejs_18', 'yarn', 'pkg-config']
 
 [phases.install]
 cmds = [
@@ -16,7 +16,7 @@ cmds = [
 cmd = 'bundle exec rails server -b 0.0.0.0 -p $PORT'
 
 [variables]
-NODE_ENV = 'production'
 RAILS_ENV = 'production'
+NODE_ENV = 'production'
 RAILS_SERVE_STATIC_FILES = 'true'
 RAILS_LOG_TO_STDOUT = 'true'
