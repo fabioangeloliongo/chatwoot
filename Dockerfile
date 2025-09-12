@@ -44,11 +44,11 @@ EXPOSE 3000
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Running database migrations..."\n\
-bundle exec rails db:migrate\n\
+/usr/local/bundle/bin/bundle exec rails db:migrate\n\
 echo "Running database seeds..."\n\
-bundle exec rails db:seed\n\
+/usr/local/bundle/bin/bundle exec rails db:seed\n\
 echo "Starting Rails server..."\n\
-exec bundle exec rails server -b 0.0.0.0 -p 3000' > /app/start.sh && \
+exec /usr/local/bundle/bin/bundle exec rails server -b 0.0.0.0 -p 3000' > /app/start.sh && \
 chmod +x /app/start.sh
 
 # Start command
