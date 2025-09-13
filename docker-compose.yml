@@ -4,7 +4,6 @@ services:
 ## --------------------------- CHATWOOT ENTERPRISE --------------------------- ##
 
   chatwoot_enterprise_app:
-    image: chatwoot-enterprise-web
     build:
       context: .
       dockerfile: Dockerfile
@@ -106,7 +105,6 @@ services:
 ## --------------------------- CHATWOOT ENTERPRISE --------------------------- ##
 
   chatwoot_enterprise_sidekiq:
-    image: chatwoot-enterprise-sidekiq
     build:
       context: .
       dockerfile: Dockerfile
