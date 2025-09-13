@@ -1,0 +1,118 @@
+version: '3.8'
+
+# Não usar arquivo .env - configurar variáveis no Portainer
+services:
+  chatwoot-web:
+    image: chatwoot-web-custom
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Database Configuration
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      
+      # Redis Configuration
+      REDIS_URL: ${REDIS_URL}
+      
+      # Application Configuration
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      RAILS_ENV: production
+      NODE_ENV: production
+      
+      # Enterprise Configuration (nossa customização)
+      IS_ENTERPRISE: "true"
+      INSTALLATION_PRICING_PLAN: "enterprise"
+      
+      # Installation Configuration
+      INSTALLATION_NAME: "Chatwoot Enterprise Custom"
+      BRAND_NAME: "Chatwoot"
+      BRAND_URL: "https://www.chatwoot.com"
+      
+      # Email Configuration (opcional)
+      MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL:-noreply@chatwoot.com}
+      SMTP_DOMAIN: ${SMTP_DOMAIN:-chatwoot.com}
+      SMTP_ADDRESS: ${SMTP_ADDRESS}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
+      SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO:-true}
+      
+      # File Storage
+      ACTIVE_STORAGE_SERVICE: local
+      
+      # Captain IA Configuration (nossa customização)
+      CAPTAIN_API_URL: ${CAPTAIN_API_URL}
+      CAPTAIN_OPEN_AI_ENDPOINT: ${CAPTAIN_OPEN_AI_ENDPOINT:-https://api.openai.com/}
+      
+      # Security
+      FORCE_SSL: ${FORCE_SSL:-false}
+      
+      # Frontend URL
+      FRONTEND_URL: ${FRONTEND_URL}
+      
+    volumes:
+      - chatwoot_storage:/app/storage
+      - chatwoot_public:/app/public
+    
+    command: >
+      bash -c "
+        bundle exec rails db:prepare &&
+        bundle exec rails db:seed &&
+        bundle exec rails server -b 0.0.0.0 -p 3000
+      "
+    
+    depends_on:
+      - chatwoot-sidekiq
+    
+    networks:
+      - rede
+
+  chatwoot-sidekiq:
+    image: chatwoot-sidekiq-custom
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Database Configuration
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      
+      # Redis Configuration
+      REDIS_URL: ${REDIS_URL}
+      
+      # Application Configuration
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      RAILS_ENV: production
+      NODE_ENV: production
+      
+      # Enterprise Configuration (nossa customização)
+      IS_ENTERPRISE: "true"
+      INSTALLATION_PRICING_PLAN: "enterprise"
+      
+    volumes:
+      - chatwoot_storage:/app/storage
+      - chatwoot_public:/app/public
+    
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    
+    networks:
+      - rede
+
+volumes:
+  chatwoot_storage:
+  chatwoot_public:
+
+networks:
+  rede:
+    external: true
+    name: rede
