@@ -1,116 +1,203 @@
-version: '3.8'
-
-# Não usar arquivo .env - configurar variáveis no Portainer
+version: "3.7"
 services:
-  chatwoot-web:
-    image: chatwoot-web-custom
+
+## --------------------------- CHATWOOT ENTERPRISE --------------------------- ##
+
+  chatwoot_enterprise_app:
+    image: chatwoot-enterprise-web
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      # Database Configuration
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
-      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      
-      # Redis Configuration
-      REDIS_URL: ${REDIS_URL}
-      
-      # Application Configuration
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      RAILS_ENV: production
-      NODE_ENV: production
-      
-      # Enterprise Configuration (nossa customização)
-      IS_ENTERPRISE: "true"
-      INSTALLATION_PRICING_PLAN: "enterprise"
-      
-      # Installation Configuration
-      INSTALLATION_NAME: "Chatwoot Enterprise Custom"
-      BRAND_NAME: "Chatwoot"
-      BRAND_URL: "https://www.chatwoot.com"
-      
-      # Email Configuration (opcional)
-      MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL:-noreply@chatwoot.com}
-      SMTP_DOMAIN: ${SMTP_DOMAIN:-chatwoot.com}
-      SMTP_ADDRESS: ${SMTP_ADDRESS}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
-      SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO:-true}
-      
-      # File Storage
-      ACTIVE_STORAGE_SERVICE: local
-      
-      # Captain IA Configuration (nossa customização)
-      CAPTAIN_API_URL: ${CAPTAIN_API_URL}
-      CAPTAIN_OPEN_AI_ENDPOINT: ${CAPTAIN_OPEN_AI_ENDPOINT:-https://api.openai.com/}
-      
-      # Security
-      FORCE_SSL: ${FORCE_SSL:-false}
-      
-      # Frontend URL
-      FRONTEND_URL: ${FRONTEND_URL}
-      
-    volumes:
-      - chatwoot_storage:/app/storage
-      - chatwoot_public:/app/public
-    
     command: >
-      bash -c "
-        bundle exec rails db:prepare &&
-        bundle exec rails db:seed &&
-        bundle exec rails server -b 0.0.0.0 -p 3000
-      "
+      sh -c "echo 'Rails.application.config.active_storage.variant_processor = :mini_magick' > /app/config/initializers/active_storage.rb && bundle exec rails s -p 3000 -b 0.0.0.0"
+    entrypoint: docker/entrypoints/rails.sh
+
+    volumes:
+      - chatwoot_enterprise_storage:/app/storage
+
+    networks:
+      - rede
     
-    depends_on:
-      - chatwoot-sidekiq
-    
+    environment:
+    ## 🏢 Nome da Empresa
+      - INSTALLATION_NAME=Chatwoot Enterprise Custom
+
+    ## 🔐 Secret key
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+
+    ## 💬 Url Chatwoot Enterprise (porta diferente)
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL:-false}
+
+    ## 🌍 Idioma/Localização padrão
+      - DEFAULT_LOCALE=pt_BR
+      - TZ=America/Sao_Paulo
+
+    ## 🧑‍💻 Dados do Redis (usando o mesmo Redis)
+      - REDIS_URL=redis://chatwoot_redis:6379
+
+    ## 🗄️ Dados do Postgres (database separado)
+      - POSTGRES_HOST=pgvector
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=chatwoot_enterprise
+
+    ## 🏠 Armazenamento
+      - ACTIVE_STORAGE_SERVICE=local
+
+    ## 📧 Dados do SMTP (mesmas configurações)
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SSL=false
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=login
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - SMTP_OPENSSL_VERIFY_MODE=peer
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_SENDER_EMAIL}
+
+    ## 🚀 Enterprise Configuration (nossa customização)
+      - IS_ENTERPRISE=true
+      - INSTALLATION_PRICING_PLAN=enterprise
+
+    ## 🤖 Captain IA Configuration (nossa customização)
+      - CAPTAIN_API_URL=${CAPTAIN_API_URL}
+      - CAPTAIN_OPEN_AI_ENDPOINT=${CAPTAIN_OPEN_AI_ENDPOINT:-https://api.openai.com/}
+
+    ## ⚙️ Melhorias
+      - SIDEKIQ_CONCURRENCY=10
+      - RACK_TIMEOUT_SERVICE_TIMEOUT=0
+      - RAILS_MAX_THREADS=5
+      - WEB_CONCURRENCY=2
+      - ENABLE_RACK_ATTACK=false
+
+    ## ⚡ Outras configurações
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - RAILS_LOG_TO_STDOUT=true
+      - USE_INBOX_AVATAR_FOR_BOT=true
+      - ENABLE_ACCOUNT_SIGNUP=false
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.chatwoot_enterprise_app.rule=Host(`${ENTERPRISE_DOMAIN}`)
+        - traefik.http.routers.chatwoot_enterprise_app.entrypoints=websecure
+        - traefik.http.routers.chatwoot_enterprise_app.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.chatwoot_enterprise_app.priority=1
+        - traefik.http.routers.chatwoot_enterprise_app.service=chatwoot_enterprise_app
+        - traefik.http.services.chatwoot_enterprise_app.loadbalancer.server.port=3000
+        - traefik.http.services.chatwoot_enterprise_app.loadbalancer.passHostHeader=true
+        - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+        - traefik.http.routers.chatwoot_enterprise_app.middlewares=sslheader
+
+## --------------------------- CHATWOOT ENTERPRISE --------------------------- ##
+
+  chatwoot_enterprise_sidekiq:
+    image: chatwoot-enterprise-sidekiq
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+    volumes:
+      - chatwoot_enterprise_storage:/app/storage
+
     networks:
       - rede
 
-  chatwoot-sidekiq:
-    image: chatwoot-sidekiq-custom
-    build:
-      context: .
-      dockerfile: Dockerfile
     environment:
-      # Database Configuration
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
-      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      
-      # Redis Configuration
-      REDIS_URL: ${REDIS_URL}
-      
-      # Application Configuration
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      RAILS_ENV: production
-      NODE_ENV: production
-      
-      # Enterprise Configuration (nossa customização)
-      IS_ENTERPRISE: "true"
-      INSTALLATION_PRICING_PLAN: "enterprise"
-      
-    volumes:
-      - chatwoot_storage:/app/storage
-      - chatwoot_public:/app/public
-    
-    command: bundle exec sidekiq -C config/sidekiq.yml
-    
-    networks:
-      - rede
+    ## 🏢 Nome da Empresa
+      - INSTALLATION_NAME=Chatwoot Enterprise Custom
+
+    ## 🔐 Secret key
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+
+    ## 💬 Url Chatwoot Enterprise
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL:-false}
+
+    ## 🌍 Idioma/Localização padrão
+      - DEFAULT_LOCALE=pt_BR
+      - TZ=America/Sao_Paulo
+
+    ## 🧑‍💻 Dados do Redis (usando o mesmo Redis)
+      - REDIS_URL=redis://chatwoot_redis:6379
+
+    ## 🗄️ Dados do Postgres (database separado)
+      - POSTGRES_HOST=pgvector
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=chatwoot_enterprise
+
+    ## 🏠 Armazenamento
+      - ACTIVE_STORAGE_SERVICE=local
+
+    ## 📧 Dados do SMTP
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SSL=false
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=login
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - SMTP_OPENSSL_VERIFY_MODE=peer
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_SENDER_EMAIL}
+
+    ## 🚀 Enterprise Configuration
+      - IS_ENTERPRISE=true
+      - INSTALLATION_PRICING_PLAN=enterprise
+
+    ## 🤖 Captain IA Configuration
+      - CAPTAIN_API_URL=${CAPTAIN_API_URL}
+      - CAPTAIN_OPEN_AI_ENDPOINT=${CAPTAIN_OPEN_AI_ENDPOINT:-https://api.openai.com/}
+
+    ## ⚙️ Melhorias
+      - SIDEKIQ_CONCURRENCY=10
+      - RACK_TIMEOUT_SERVICE_TIMEOUT=0
+      - RAILS_MAX_THREADS=5
+      - WEB_CONCURRENCY=2
+      - ENABLE_RACK_ATTACK=false
+
+    ## ⚡ Outras configurações
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - RAILS_LOG_TO_STDOUT=true
+      - USE_INBOX_AVATAR_FOR_BOT=true
+      - ENABLE_ACCOUNT_SIGNUP=false
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+## --------------------------- CHATWOOT ENTERPRISE --------------------------- ##
 
 volumes:
-  chatwoot_storage:
-  chatwoot_public:
+  chatwoot_enterprise_storage:
+    external: true
+    name: chatwoot_enterprise_storage
 
 networks:
   rede:
