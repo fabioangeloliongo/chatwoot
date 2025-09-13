@@ -3,7 +3,10 @@ version: '3.8'
 # Não usar arquivo .env - configurar variáveis no Portainer
 services:
   chatwoot-web:
-    image: chatwoot/chatwoot:latest
+    image: chatwoot-web-custom
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -72,7 +75,10 @@ services:
       - rede
 
   chatwoot-sidekiq:
-    image: chatwoot/chatwoot:latest
+    image: chatwoot-sidekiq-custom
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       # Database Configuration
       POSTGRES_HOST: ${POSTGRES_HOST}
